@@ -17,18 +17,13 @@ class _RutinasScreenState extends State<RutinasScreen> {
   @override
   void initState() {
     super.initState();
-
     Future.microtask(() {
-      Provider.of<RutinaProvider>(
-        context,
-        listen: false,
-      ).cargarRutinas();
+      Provider.of<RutinaProvider>(context, listen: false).cargarRutinas();
     });
   }
 
   void mostrarDialogoEditar(Rutina rutina) {
-    TextEditingController editController =
-        TextEditingController(text: rutina.titulo);
+    TextEditingController editController = TextEditingController(text: rutina.titulo);
 
     showDialog(
       context: context,
@@ -37,9 +32,7 @@ class _RutinasScreenState extends State<RutinasScreen> {
           title: const Text("Editar Rutina"),
           content: TextField(
             controller: editController,
-            decoration: const InputDecoration(
-              labelText: "Título",
-            ),
+            decoration: const InputDecoration(labelText: "Título"),
           ),
           actions: [
             TextButton(
@@ -48,14 +41,11 @@ class _RutinasScreenState extends State<RutinasScreen> {
             ),
             ElevatedButton(
               onPressed: () async {
-                rutina.titulo = editController.text;
-
-                await Provider.of<RutinaProvider>(
-                  context,
-                  listen: false,
-                ).actualizarRutina(rutina);
-
-                Navigator.pop(context);
+                if (editController.text.trim().isEmpty) return;
+                rutina.titulo = editController.text.trim();
+                await Provider.of<RutinaProvider>(context, listen: false)
+                    .actualizarRutina(rutina);
+                if (context.mounted) Navigator.pop(context);
               },
               child: const Text("Guardar"),
             ),
@@ -68,164 +58,99 @@ class _RutinasScreenState extends State<RutinasScreen> {
   @override
   Widget build(BuildContext context) {
     final rutinaProvider = Provider.of<RutinaProvider>(context);
-
-    int total = rutinaProvider.rutinas.length;
-
-    int completadas = rutinaProvider.rutinas
-        .where((r) => r.completado)
-        .length;
-
-    double progreso =
-        total == 0 ? 0 : completadas / total;
+    final listado = rutinaProvider.rutinas;
 
     return Scaffold(
       appBar: AppBar(
         title: const Text("📋 Mis Rutinas"),
-        centerTitle: true,
+        backgroundColor: Colors.teal,
+        foregroundColor: Colors.white,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
+      body: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.all(16),
           children: [
-
-            Card(
-              elevation: 4,
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  children: [
-                    const Text(
-                      "Progreso Diario",
-                      style: TextStyle(
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    LinearProgressIndicator(
-                      value: progreso,
-                    ),
-
-                    const SizedBox(height: 10),
-
-                    Text(
-                      "$completadas de $total completadas",
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            const SizedBox(height: 20),
-
+            // Sección superior de ingreso
             Row(
               children: [
                 Expanded(
                   child: TextField(
                     controller: controller,
                     decoration: InputDecoration(
-                      hintText: "Nueva rutina",
+                      hintText: "Escribe una nueva rutina...",
                       border: OutlineInputBorder(
-                        borderRadius:
-                            BorderRadius.circular(12),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
                   ),
                 ),
-
                 const SizedBox(width: 10),
-
-                ElevatedButton(
+                IconButton(
+                  icon: const Icon(Icons.add_circle, size: 48, color: Colors.teal),
                   onPressed: () async {
-                    if (controller.text.isEmpty) return;
-
-                    await rutinaProvider.agregarRutina(
-                      Rutina(
-                        titulo: controller.text,
-                        fecha: DateTime.now()
-                            .toString(),
-                      ),
+                    if (controller.text.trim().isEmpty) return;
+                    
+                    final nueva = Rutina(
+                      titulo: controller.text.trim(),
+                      fecha: DateTime.now().toString(),
                     );
-
+                    
+                    await rutinaProvider.agregarRutina(nueva);
                     controller.clear();
+                    FocusScope.of(context).unfocus();
                   },
-                  child: const Icon(Icons.add),
                 ),
               ],
             ),
-
             const SizedBox(height: 20),
+            const Divider(),
+            const SizedBox(height: 10),
 
-            Expanded(
-              child: ListView.builder(
-                itemCount:
-                    rutinaProvider.rutinas.length,
-                itemBuilder: (context, index) {
-                  final rutina =
-                      rutinaProvider.rutinas[index];
-
-                  return Card(
-                    child: ListTile(
-                      leading: Checkbox(
-                        value: rutina.completado,
-                        onChanged: (_) {
-                          rutinaProvider
-                              .toggleRutina(rutina);
-                        },
-                      ),
-
-                      title: Text(
-                        rutina.titulo,
-                        style: TextStyle(
-                          decoration:
-                              rutina.completado
-                                  ? TextDecoration
-                                      .lineThrough
-                                  : null,
-                        ),
-                      ),
-
-                      subtitle: Text(
-                        rutina.fecha.substring(0, 10),
-                      ),
-
-                      trailing: Row(
-                        mainAxisSize:
-                            MainAxisSize.min,
-                        children: [
-
-                          IconButton(
-                            icon: const Icon(
-                              Icons.edit,
-                              color: Colors.blue,
-                            ),
-                            onPressed: () {
-                              mostrarDialogoEditar(
-                                  rutina);
-                            },
-                          ),
-
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete,
-                              color: Colors.red,
-                            ),
-                            onPressed: () {
-                              rutinaProvider
-                                  .eliminarRutina(
-                                rutina.id!,
-                              );
-                            },
-                          ),
-                        ],
+            // Mapeo e impresión del listado asíncrono
+            if (listado.isEmpty)
+              const Padding(
+                padding: EdgeInsets.all(40.0),
+                child: Center(
+                  child: Text(
+                    "No hay rutinas guardadas.\n¡Ingresa una arriba para comenzar!",
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: Colors.grey, fontSize: 16),
+                  ),
+                ),
+              )
+            else
+              ...listado.map((item) {
+                return Card(
+                  margin: const EdgeInsets.symmetric(vertical: 6),
+                  child: ListTile(
+                    leading: Checkbox(
+                      value: item.completado,
+                      onChanged: (_) {
+                        rutinaProvider.toggleRutina(item);
+                      },
+                    ),
+                    title: Text(
+                      item.titulo,
+                      style: TextStyle(
+                        decoration: item.completado ? TextDecoration.lineThrough : null,
                       ),
                     ),
-                  );
-                },
-              ),
-            ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () => mostrarDialogoEditar(item),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete, color: Colors.red),
+                          onPressed: () => rutinaProvider.eliminarRutina(item.id!),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
           ],
         ),
       ),
