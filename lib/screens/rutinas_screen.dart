@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-
 import '../models/rutina.dart';
 import '../providers/rutina_provider.dart';
+import '../providers/auth_provider.dart'; // Importante para leer el ID
 
 class RutinasScreen extends StatefulWidget {
   const RutinasScreen({super.key});
@@ -18,11 +18,14 @@ class _RutinasScreenState extends State<RutinasScreen> {
   void initState() {
     super.initState();
     Future.microtask(() {
-      Provider.of<RutinaProvider>(context, listen: false).cargarRutinas();
+      // 🎯 Extraemos el ID del usuario logueado en este instante
+      final userId = Provider.of<AuthProvider>(context, listen: false).usuarioIdActual;
+      // Carga solo sus datos
+      Provider.of<RutinaProvider>(context, listen: false).cargarRutinas(userId);
     });
   }
 
-  void mostrarDialogoEditar(Rutina rutina) {
+  void mostrarDialogoEditar(Rutina rutina, int userId) {
     TextEditingController editController = TextEditingController(text: rutina.titulo);
 
     showDialog(
@@ -43,8 +46,7 @@ class _RutinasScreenState extends State<RutinasScreen> {
               onPressed: () async {
                 if (editController.text.trim().isEmpty) return;
                 rutina.titulo = editController.text.trim();
-                await Provider.of<RutinaProvider>(context, listen: false)
-                    .actualizarRutina(rutina);
+                await Provider.of<RutinaProvider>(context, listen: false).actualizarRutina(rutina);
                 if (context.mounted) Navigator.pop(context);
               },
               child: const Text("Guardar"),
@@ -58,6 +60,8 @@ class _RutinasScreenState extends State<RutinasScreen> {
   @override
   Widget build(BuildContext context) {
     final rutinaProvider = Provider.of<RutinaProvider>(context);
+    // 🎯 Capturamos el ID del usuario desde la vista build
+    final userId = Provider.of<AuthProvider>(context).usuarioIdActual;
     final listado = rutinaProvider.rutinas;
 
     return Scaffold(
@@ -70,7 +74,6 @@ class _RutinasScreenState extends State<RutinasScreen> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // Sección superior de ingreso
             Row(
               children: [
                 Expanded(
@@ -78,9 +81,7 @@ class _RutinasScreenState extends State<RutinasScreen> {
                     controller: controller,
                     decoration: InputDecoration(
                       hintText: "Escribe una nueva rutina...",
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                     ),
                   ),
                 ),
@@ -90,7 +91,9 @@ class _RutinasScreenState extends State<RutinasScreen> {
                   onPressed: () async {
                     if (controller.text.trim().isEmpty) return;
                     
+                    // 👈 Pasamos el userId del usuario logueado a la nueva rutina
                     final nueva = Rutina(
+                      usuarioId: userId, 
                       titulo: controller.text.trim(),
                       fecha: DateTime.now().toString(),
                     );
@@ -106,7 +109,6 @@ class _RutinasScreenState extends State<RutinasScreen> {
             const Divider(),
             const SizedBox(height: 10),
 
-            // Mapeo e impresión del listado asíncrono
             if (listado.isEmpty)
               const Padding(
                 padding: EdgeInsets.all(40.0),
@@ -140,11 +142,11 @@ class _RutinasScreenState extends State<RutinasScreen> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.edit, color: Colors.blue),
-                          onPressed: () => mostrarDialogoEditar(item),
+                          onPressed: () => mostrarDialogoEditar(item, userId),
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete, color: Colors.red),
-                          onPressed: () => rutinaProvider.eliminarRutina(item.id!),
+                          onPressed: () => rutinaProvider.eliminarRutina(item.id!, userId),
                         ),
                       ],
                     ),

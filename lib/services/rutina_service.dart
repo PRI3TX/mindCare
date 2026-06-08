@@ -2,61 +2,21 @@ import '../models/rutina.dart';
 import 'database_service.dart';
 
 class RutinaService {
-
-  Future<List<Rutina>> obtenerRutinas() async {
-    final db = await DatabaseService.database;
-
-    final List<Map<String, dynamic>> maps =
-        await db.query(
-      'rutinas',
-      orderBy: 'id DESC',
-    );
-
-    print("Rutinas en BD: ${maps.length}");
-
-    return List.generate(
-      maps.length,
-      (i) => Rutina.fromMap(maps[i]),
-    );
+  // Redirecciona al buscador filtrado por usuario
+  Future<List<Rutina>> obtenerRutinasPorUsuario(int usuarioId) async {
+    final listaMap = await DatabaseService.instance.obtenerRutinasPorUsuario(usuarioId);
+    return listaMap.map((map) => Rutina.fromMap(map)).toList();
   }
 
-  Future<int> insertarRutina(
-      Rutina rutina) async {
-
-    final db = await DatabaseService.database;
-
-    int id = await db.insert(
-      'rutinas',
-      rutina.toMap(),
-    );
-
-    print("Rutina guardada con ID: $id");
-
-    return id;
+  Future<void> insertarRutina(Rutina rutina) async {
+    await DatabaseService.instance.insertarRutina(rutina);
   }
 
-  Future<int> actualizarRutina(
-      Rutina rutina) async {
-
-    final db = await DatabaseService.database;
-
-    return await db.update(
-      'rutinas',
-      rutina.toMap(),
-      where: 'id = ?',
-      whereArgs: [rutina.id],
-    );
+  Future<void> actualizarRutina(Rutina rutina) async {
+    await DatabaseService.instance.actualizarRutina(rutina);
   }
 
-  Future<int> eliminarRutina(
-      int id) async {
-
-    final db = await DatabaseService.database;
-
-    return await db.delete(
-      'rutinas',
-      where: 'id = ?',
-      whereArgs: [id],
-    );
+  Future<void> eliminarRutina(int id) async {
+    await DatabaseService.instance.eliminarRutina(id);
   }
 }

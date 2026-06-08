@@ -1,57 +1,39 @@
 import 'package:flutter/material.dart';
-
 import '../services/rutina_service.dart';
 import '../services/tratamiento_service.dart';
 
 class DashboardProvider with ChangeNotifier {
+  final RutinaService _rutinaService = RutinaService();
+  final TratamientoService _tratamientoService = TratamientoService();
+
   int totalRutinas = 0;
   int rutinasCompletadas = 0;
-
   int totalTratamientos = 0;
   int tratamientosCompletados = 0;
 
-  String consejo = "";
+  // 💡 SOLUCIÓN (Imagen 6): Agregamos el getter 'consejo' que tu HomeScreen intenta leer
+  String get consejo => "¡Un paso a la vez! Lo importante es mantener la constancia y no detenerse.";
 
-  final RutinaService _rutinaService = RutinaService();
-  final TratamientoService _tratamientoService =
-      TratamientoService();
+  double get progresoRutinas => totalRutinas == 0 ? 0.0 : rutinasCompletadas / totalRutinas;
+  double get progresoTratamientos => totalTratamientos == 0 ? 0.0 : tratamientosCompletados / totalTratamientos;
 
-  final List<String> consejos = [
-    "Un pequeño avance sigue siendo un avance.",
-    "Hoy no necesitas ser perfecto, solo avanzar.",
-    "Haz lo que puedas con lo que tienes.",
-    "Cada tarea completada cuenta.",
-    "Descansar también es productividad.",
-    "La constancia supera la perfección.",
-    "Un paso a la vez.",
-    "Lo importante es no detenerse.",
-  ];
+  // 📋 MODIFICADO (Imagen 3): Ahora requiere el usuarioId para cargar las métricas correctas
+  Future<void> cargarDashboard(int usuarioId) async {
+    try {
+      // Consulta los servicios usando el filtro del usuario logueado
+      final rutinas = await _rutinaService.obtenerRutinasPorUsuario(usuarioId);
+      final tratamientos = await _tratamientoService.obtenerTratamientosPorUsuario(usuarioId);
 
-  Future<void> cargarDashboard() async {
-    final rutinas =
-        await _rutinaService.obtenerRutinas();
+      // Calcula las métricas del usuario actual
+      totalRutinas = rutinas.length;
+      rutinasCompletadas = rutinas.where((r) => r.completado).length;
 
-    final tratamientos =
-        await _tratamientoService
-            .obtenerTratamientos();
+      totalTratamientos = tratamientos.length;
+      tratamientosCompletados = tratamientos.where((t) => t.completado).length;
 
-    totalRutinas = rutinas.length;
-
-    rutinasCompletadas =
-        rutinas.where((r) => r.completado).length;
-
-    totalTratamientos =
-        tratamientos.length;
-
-    tratamientosCompletados =
-        tratamientos
-            .where((t) => t.completado)
-            .length;
-
-    consejo = consejos[
-        DateTime.now().day %
-            consejos.length];
-
-    notifyListeners();
+      notifyListeners();
+    } catch (e) {
+      debugPrint("Error al cargar el dashboard: $e");
+    }
   }
 }

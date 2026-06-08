@@ -1,16 +1,19 @@
 // main.dart corregido
 import 'package:flutter/material.dart';
+import 'package:mindtrack_app/screens/login_screen.dart';
 import 'package:provider/provider.dart';
 
 import 'providers/rutina_provider.dart';
 import 'providers/tratamiento_provider.dart';
 import 'providers/dashboard_provider.dart';
 import 'screens/home_screen.dart';
+import 'providers/auth_provider.dart';
 
 void main() {
   runApp(
     MultiProvider(
       providers: [
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => RutinaProvider()),
         ChangeNotifierProvider(create: (_) => TratamientoProvider()),
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
@@ -51,8 +54,12 @@ class MyApp extends StatelessWidget {
             ),
           ),
         ),
-      ),
-      home: const HomeScreen(),
-    );
-  }
-}
+      ), // Cierre de ThemeData
+      home: Consumer<AuthProvider>(
+        builder: (context, auth, _) {
+          return auth.estaLogueado ? const HomeScreen() : const LoginScreen();
+        },
+      ), // Cierre del Consumer
+    ); // Cierre del MaterialApp
+  } // Cierre del método Widget build
+} // Cierre de la clase MyApp 👈 Corregido: Removida la 'x' sobrante al final

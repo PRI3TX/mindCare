@@ -1,37 +1,58 @@
 class Tratamiento {
-  int? id;
-  String nombre;
-  String descripcion;
-  bool completado;
-  String fecha;
+  final int? id;
+  final int usuarioId;
+  final String nombre;
+  final String descripcion;
+  final String fecha;
+  final bool completado;
 
   Tratamiento({
     this.id,
+    required this.usuarioId,
     required this.nombre,
     required this.descripcion,
-    this.completado = false,
     required this.fecha,
+    this.completado = false,
   });
+
+  // 🛠️ CRÍTICO: Permite modificar campos de un objeto inmutable creando una copia
+  Tratamiento copyWith({
+    int? id,
+    int? usuarioId,
+    String? nombre,
+    String? descripcion,
+    String? fecha,
+    bool? completado,
+  }) {
+    return Tratamiento(
+      id: id ?? this.id,
+      usuarioId: usuarioId ?? this.usuarioId,
+      nombre: nombre ?? this.nombre,
+      descripcion: descripcion ?? this.descripcion,
+      fecha: fecha ?? this.fecha,
+      completado: completado ?? this.completado,
+    );
+  }
 
   Map<String, dynamic> toMap() {
     return {
-      'id': id,
+      if (id != null) 'id': id,
+      'usuario_id': usuarioId,
       'nombre': nombre,
       'descripcion': descripcion,
-      'completado': completado ? 1 : 0,
       'fecha': fecha,
+      'completado': completado ? 1 : 0,
     };
   }
 
-  factory Tratamiento.fromMap(
-    Map<String, dynamic> map,
-  ) {
+  factory Tratamiento.fromMap(Map<String, dynamic> map) {
     return Tratamiento(
       id: map['id'],
+      usuarioId: map['usuario_id'],
       nombre: map['nombre'],
       descripcion: map['descripcion'],
-      completado: map['completado'] == 1,
       fecha: map['fecha'],
+      completado: map['completado'] == 1,
     );
   }
 }
