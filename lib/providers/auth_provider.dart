@@ -1,70 +1,74 @@
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // 👈 CORREGIDO: Import oficial de Flutter
-import '../models/usuario.dart';
 import '../services/database_service.dart';
+import '../models/usuario.dart';
 
 class AuthProvider with ChangeNotifier {
-  bool _estaLogueado = false;
+  int _usuarioIdActual = -1;
   String _nombreUsuario = "";
-  int _usuarioIdActual = 0; 
+  bool _isLoggedIn = false;
 
-  bool get estaLogueado => _estaLogueado;
-  String get nombreUsuario => _nombreUsuario;
   int get usuarioIdActual => _usuarioIdActual;
+  String get nombreUsuario => _nombreUsuario;
+  bool get isLoggedIn => _isLoggedIn;
 
-  AuthProvider() {
-    verificarSesion();
-  }
-
-  Future<void> verificarSesion() async {
-    final prefs = await SharedPreferences.getInstance();
-    _estaLogueado = prefs.getBool('isLoggedIn') ?? false;
-    _nombreUsuario = prefs.getString('userName') ?? "";
-    _usuarioIdActual = prefs.getInt('userId') ?? 0;
-    notifyListeners();
-  }
-
-  Future<bool> registrarUsuario(Usuario usuario) async {
-    try {
-      await DatabaseService.instance.registrarUsuario(usuario);
-      return true;
-    } catch (e) {
-      debugPrint("Error en registro: $e");
-      return false;
-    }
-  }
-
+  // 🔐 MÉTODO DE LOGIN CON HARDCODE TEMPORAL PARA PRUEBAS
   Future<bool> login(String correo, String contrasena) async {
     try {
-      final res = await DatabaseService.instance.buscarUsuarioPorCorreo(correo);
-      
-      if (res != null && res['contrasena'] == contrasena) {
-        final prefs = await SharedPreferences.getInstance();
-        
-        _usuarioIdActual = res['id'];
-        _nombreUsuario = res['nombre'];
-        _estaLogueado = true;
+      final emailLimpio = correo.trim().toLowerCase();
+      final passwordLimpia = contrasena.trim();
 
-        await prefs.setBool('isLoggedIn', true);
-        await prefs.setString('userName', _nombreUsuario);
-        await prefs.setInt('userId', _usuarioIdActual);
-
+      // 🧪 TRUCO TEMPORAL: Bypass directo sin pasar por SQLite
+      if (emailLimpio == 'admin@test.com' && passwordLimpia == '123456') {
+        _usuarioIdActual = 1;
+        _nombreUsuario = "Usuario de Prueba";
+        _isLoggedIn = true;
         notifyListeners();
-        return true;
+        return true; // Acceso garantizado para testear la app
       }
-      return false;
+
+      // LÓGICA REAL CON LA BASE DE DATOS
+      final usuarioMap = await DatabaseService.instance.buscarUsuarioPorCorreo(emailLimpio);
+
+      if (usuarioMap != null) {
+        final usuario = Usuario.fromMap(usuarioMap);
+
+        if (usuario.contrasena.trim() == passwordLimpia) {
+          _usuarioIdActual = usuario.id!;
+          _nombreUsuario = usuario.nombre;
+          _isLoggedIn = true;
+          notifyListeners();
+          return true; // Login correcto por BD
+        }
+      }
+      return false; // Credenciales inválidas
     } catch (e) {
-      debugPrint("Error en login: $e");
+      debugPrint("Error en AuthProvider (Login): $e");
       return false;
     }
   }
 
-  Future<void> logout() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.clear();
-    _estaLogueado = false;
+  // MÉTODO DE REGISTRO
+  Future<bool> registrarUsuario(String nombre, String correo, String contrasena) async {
+    try {
+      final nuevoUsuario = Usuario(
+        nombre: nombre.trim(),
+        correo: correo.trim().toLowerCase(),
+        contrasena: contrasena.trim(),
+      );
+
+      final id = await DatabaseService.instance.insertarUsuario(nuevoUsuario.toMap());
+      return id > 0;
+    } catch (e) {
+      debugPrint("Error en AuthProvider (Registro): $e");
+      return false;
+    }
+  }
+
+  // CIERRE DE SESIÓN
+  void logout() {
+    _usuarioIdActual = -1;
     _nombreUsuario = "";
-    _usuarioIdActual = 0;
+    _isLoggedIn = false;
     notifyListeners();
   }
 }

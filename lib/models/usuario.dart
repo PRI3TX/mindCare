@@ -11,7 +11,6 @@ class Usuario {
     required this.contrasena,
   });
 
-  // Convierte el objeto a un Map para insertarlo en SQLite
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
@@ -21,13 +20,12 @@ class Usuario {
     };
   }
 
-  // Crea un Usuario a partir de un registro de la base de datos
   factory Usuario.fromMap(Map<String, dynamic> map) {
     return Usuario(
-      id: map['id'],
-      nombre: map['nombre'],
-      correo: map['correo'],
-      contrasena: map['contrasena'],
+      id: map['id'] as int?,
+      nombre: map['nombre'] ?? '',
+      correo: map['correo'] ?? '',
+      contrasena: map['contrasena'] ?? '',
     );
   }
 }

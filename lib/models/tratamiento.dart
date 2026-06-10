@@ -15,7 +15,6 @@ class Tratamiento {
     this.completado = false,
   });
 
-  // 🛠️ CRÍTICO: Permite modificar campos de un objeto inmutable creando una copia
   Tratamiento copyWith({
     int? id,
     int? usuarioId,
@@ -37,7 +36,7 @@ class Tratamiento {
   Map<String, dynamic> toMap() {
     return {
       if (id != null) 'id': id,
-      'usuario_id': usuarioId,
+      'usuarioId': usuarioId,
       'nombre': nombre,
       'descripcion': descripcion,
       'fecha': fecha,
@@ -48,10 +47,10 @@ class Tratamiento {
   factory Tratamiento.fromMap(Map<String, dynamic> map) {
     return Tratamiento(
       id: map['id'],
-      usuarioId: map['usuario_id'],
-      nombre: map['nombre'],
-      descripcion: map['descripcion'],
-      fecha: map['fecha'],
+      usuarioId: map['usuarioId'] ?? map['usuario_id'] ?? 0,
+      nombre: map['nombre'] ?? '',
+      descripcion: map['descripcion'] ?? '',
+      fecha: map['fecha'] ?? '',
       completado: map['completado'] == 1,
     );
   }

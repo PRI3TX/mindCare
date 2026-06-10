@@ -1,37 +1,56 @@
 import 'package:flutter/material.dart';
 import '../models/rutina.dart';
-import '../services/database_service.dart';
+import '../services/rutina_service.dart';
 
 class RutinaProvider with ChangeNotifier {
+  final RutinaService _rutinaService = RutinaService();
+  final int? usuarioIdActual;
   List<Rutina> _rutinas = [];
+
+  RutinaProvider({required this.usuarioIdActual}) {
+    if (usuarioIdActual != null && usuarioIdActual! > 0) {
+      cargarRutinas();
+    }
+  }
+
   List<Rutina> get rutinas => _rutinas;
 
-  // 🔍 Cargar Rutinas exclusivas
-  Future<void> cargarRutinas(int usuarioId) async {
-    final listaMap = await DatabaseService.instance.obtenerRutinasPorUsuario(usuarioId);
-    _rutinas = listaMap.map((map) => Rutina.fromMap(map)).toList();
-    print("Rutinas cargadas para el usuario ID $usuarioId: ${_rutinas.length}");
+  Future<void> cargarRutinas() async {
+    if (usuarioIdActual == null || usuarioIdActual! <= 0) return;
+    _rutinas = await _rutinaService.obtenerRutinasPorUsuario(usuarioIdActual!);
     notifyListeners();
   }
 
-  Future<void> agregarRutina(Rutina rutina) async {
-    await DatabaseService.instance.insertarRutina(rutina);
-    await cargarRutinas(rutina.usuarioId);
+  // 🛠️ CORREGIDO: Ahora acepta el String directo como lo tienes en tu pantalla, 
+  // eliminando el error "'Rutina' isn't a function"
+  Future<void> agregarRutina(String titulo) async {
+    if (usuarioIdActual == null || usuarioIdActual! <= 0) return;
+    
+    final nuevaRutina = Rutina(
+      usuarioId: usuarioIdActual!,
+      titulo: titulo,
+      fecha: DateTime.now().toString().substring(0, 10),
+      completado: false,
+    );
+    
+    await _rutinaService.insertarRutina(nuevaRutina);
+    await cargarRutinas();
   }
 
   Future<void> actualizarRutina(Rutina rutina) async {
-    await DatabaseService.instance.actualizarRutina(rutina);
-    await cargarRutinas(rutina.usuarioId);
+    await _rutinaService.actualizarRutina(rutina);
+    await cargarRutinas();
   }
 
   Future<void> toggleRutina(Rutina rutina) async {
-    rutina.completado = !rutina.completado;
-    await DatabaseService.instance.actualizarRutina(rutina);
-    await cargarRutinas(rutina.usuarioId);
+    final modificada = rutina.copyWith(completado: !rutina.completado);
+    await _rutinaService.actualizarRutina(modificada);
+    await cargarRutinas();
   }
 
-  Future<void> eliminarRutina(int id, int usuarioId) async {
-    await DatabaseService.instance.eliminarRutina(id);
-    await cargarRutinas(usuarioId);
+  // 🛠️ CORREGIDO: Ajustado a un solo parámetro posicional para corregir tu segunda captura
+  Future<void> eliminarRutina(int id) async {
+    await _rutinaService.eliminarRutina(id);
+    await cargarRutinas();
   }
 }

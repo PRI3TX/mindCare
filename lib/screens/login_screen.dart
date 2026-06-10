@@ -12,105 +12,87 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final _formKey = GlobalKey<FormState>();
   final _correoController = TextEditingController();
-  final _passController = TextEditingController();
-  bool _ocultarPass = true;
+  final _contrasenaController = TextEditingController();
+  bool _cargando = false;
+
+  @override
+  void dispose() {
+    _correoController.dispose();
+    _contrasenaController.dispose();
+    super.dispose();
+  }
+
+  void _intentarLogin() async {
+    final correo = _correoController.text.trim();
+    final contrasena = _contrasenaController.text.trim();
+
+    if (correo.isEmpty || contrasena.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Por favor, rellena todos los campos.")),
+      );
+      return;
+    }
+
+    setState(() => _cargando = true);
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final exito = await authProvider.login(correo, contrasena);
+    setState(() => _cargando = false);
+
+    if (exito) {
+      if (mounted) {
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+      }
+    } else {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Credenciales incorrectas. Verifica tu correo o contraseña."),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = Provider.of<AuthProvider>(context);
-
     return Scaffold(
       body: Center(
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(24.0),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                const Icon(Icons.psychology, size: 80, color: Colors.teal),
-                const SizedBox(height: 10),
-                const Text(
-                  "MindTrack",
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: Colors.teal),
-                ),
-                const SizedBox(height: 30),
-                
-                // Campo Correo
-                TextFormField(
-                  controller: _correoController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: InputDecoration(
-                    labelText: "Correo Electrónico",
-                    prefixIcon: const Icon(Icons.email),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  validator: (value) {
-                    if (value == null || !value.contains('@')) return "Ingresa un correo válido";
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
-
-                // Campo Contraseña
-                TextFormField(
-                  controller: _passController,
-                  obscureText: _ocultarPass,
-                  decoration: InputDecoration(
-                    labelText: "Contraseña",
-                    prefixIcon: const Icon(Icons.lock),
-                    suffixIcon: IconButton(
-                      icon: Icon(_ocultarPass ? Icons.visibility_off : Icons.visibility),
-                      onPressed: () => setState(() => _ocultarPass = !_ocultarPass),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.lock_outline, size: 80, color: Colors.teal),
+              const SizedBox(height: 20),
+              const Text("¡Bienvenido de nuevo!", style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 30),
+              TextField(
+                controller: _correoController,
+                keyboardType: TextInputType.emailAddress,
+                decoration: const InputDecoration(labelText: "Correo Electrónico", prefixIcon: Icon(Icons.email), border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 20),
+              TextField(
+                controller: _contrasenaController,
+                obscureText: true,
+                decoration: const InputDecoration(labelText: "Contraseña", prefixIcon: Icon(Icons.lock), border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 30),
+              _cargando
+                  ? const CircularProgressIndicator()
+                  : ElevatedButton(
+                      onPressed: _intentarLogin,
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.teal, foregroundColor: Colors.white, minimumSize: const Size(double.infinity, 50)),
+                      child: const Text("Iniciar Sesión", style: TextStyle(fontSize: 16)),
                     ),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  validator: (value) {
-                    if (value == null || value.length < 6) return "Mínimo 6 caracteres";
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 24),
-
-                // Botón Ingresar
-                ElevatedButton(
-                  onPressed: () async {
-                    if (_formKey.currentState!.validate()) {
-                      bool exito = await authProvider.login(
-                        _correoController.text.trim(),
-                        _passController.text.trim(),
-                      );
-                      if (exito && context.mounted) {
-                        Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => const HomeScreen()),
-                        );
-                      } else {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text("Credenciales incorrectas")),
-                        );
-                      }
-                    }
-                  },
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
-                  child: const Text("Iniciar Sesión", style: TextStyle(color: Colors.white, fontSize: 16)),
-                ),
-                
-                const SizedBox(height: 16),
-                
-                // Link a Registro
-                TextButton(
-                  onPressed: () {
-                    Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistroScreen()));
-                  },
-                  child: const Text("¿No tienes cuenta? Regístrate aquí", style: TextStyle(color: Colors.teal)),
-                )
-              ],
-            ),
+              const SizedBox(height: 15),
+              TextButton(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RegistroScreen())),
+                child: const Text("¿No tienes cuenta? Regístrate aquí"),
+              ),
+            ],
           ),
         ),
       ),

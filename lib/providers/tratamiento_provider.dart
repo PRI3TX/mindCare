@@ -4,32 +4,53 @@ import '../services/tratamiento_service.dart';
 
 class TratamientoProvider with ChangeNotifier {
   final TratamientoService _service = TratamientoService();
+  final int? usuarioIdActual;
   List<Tratamiento> _tratamientos = [];
+
+  TratamientoProvider({required this.usuarioIdActual}) {
+    if (usuarioIdActual != null && usuarioIdActual! > 0) {
+      cargarTratamientos();
+    }
+  }
 
   List<Tratamiento> get tratamientos => _tratamientos;
 
-  Future<void> cargarTratamientos(int usuarioId) async {
-    _tratamientos = await _service.obtenerTratamientosPorUsuario(usuarioId);
+  Future<void> cargarTratamientos() async {
+    if (usuarioIdActual == null || usuarioIdActual! <= 0) return;
+    _tratamientos = await _service.obtenerTratamientosPorUsuario(usuarioIdActual!);
     notifyListeners();
   }
 
-  Future<void> agregarTratamiento(Tratamiento tratamiento) async {
-    await _service.insertarTratamiento(tratamiento);
-    await cargarTratamientos(tratamiento.usuarioId);
+  // 🛠️ UNIFICADO: Recibe los campos limpios de texto directamente desde la UI
+  Future<void> agregarTratamiento(String nombre, String descripcion) async {
+    if (usuarioIdActual == null || usuarioIdActual! <= 0) return;
+
+    final nuevoTratamiento = Tratamiento(
+      usuarioId: usuarioIdActual!,
+      nombre: nombre,
+      descripcion: descripcion,
+      fecha: DateTime.now().toString().substring(0, 10),
+      completado: false,
+    );
+
+    await _service.insertarTratamiento(nuevoTratamiento);
+    await cargarTratamientos();
   }
 
   Future<void> actualizarTratamiento(Tratamiento tratamiento) async {
     await _service.actualizarTratamiento(tratamiento);
-    await cargarTratamientos(tratamiento.usuarioId);
+    await cargarTratamientos();
   }
 
   Future<void> toggleTratamiento(Tratamiento tratamiento) async {
-    final modificado = tratamiento.copyWith(completado: !tratamiento.completado);
-    await actualizarTratamiento(modificado);
+    final modificada = tratamiento.copyWith(completado: !tratamiento.completado);
+    await _service.actualizarTratamiento(modificada);
+    await cargarTratamientos();
   }
 
-  Future<void> eliminarTratamiento(int id, int usuarioId) async {
+  // 🛠️ UNIFICADO: Un solo parámetro posicional para evitar errores de argumentos cruzados
+  Future<void> eliminarTratamiento(int id) async {
     await _service.eliminarTratamiento(id);
-    await cargarTratamientos(usuarioId);
+    await cargarTratamientos();
   }
 }

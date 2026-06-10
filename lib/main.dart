@@ -1,26 +1,15 @@
-// main.dart corregido
 import 'package:flutter/material.dart';
-import 'package:mindtrack_app/screens/login_screen.dart';
 import 'package:provider/provider.dart';
-
+import 'providers/auth_provider.dart';
+import 'providers/dashboard_provider.dart';
 import 'providers/rutina_provider.dart';
 import 'providers/tratamiento_provider.dart';
-import 'providers/dashboard_provider.dart';
+import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
-import 'providers/auth_provider.dart';
 
 void main() {
-  runApp(
-    MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-        ChangeNotifierProvider(create: (_) => RutinaProvider()),
-        ChangeNotifierProvider(create: (_) => TratamientoProvider()),
-        ChangeNotifierProvider(create: (_) => DashboardProvider()),
-      ],
-      child: const MyApp(),
-    ),
-  );
+  WidgetsFlutterBinding.ensureInitialized();
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
@@ -28,38 +17,39 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'MindTrack',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
-        scaffoldBackgroundColor: const Color(0xFFF5F7FA),
-        appBarTheme: const AppBarTheme(
-          centerTitle: true,
-          elevation: 0,
+    return MultiProvider(
+      providers: [
+        // 1. Inicializamos Autenticación primero
+        ChangeNotifierProvider(create: (_) => AuthProvider()),
+        
+        // 2. Inicializamos el Dashboard
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
+        
+        // 🛠️ CORREGIDO: Cambiamos a ProxyProvider para inyectar dinámicamente el usuarioIdActual
+        ChangeNotifierProxyProvider<AuthProvider, RutinaProvider>(
+          create: (_) => RutinaProvider(usuarioIdActual: -1),
+          update: (_, auth, __) => RutinaProvider(usuarioIdActual: auth.usuarioIdActual),
         ),
-        cardTheme: CardThemeData(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
+        
+        // 🛠️ CORREGIDO: Lo mismo para Tratamientos
+        ChangeNotifierProxyProvider<AuthProvider, TratamientoProvider>(
+          create: (_) => TratamientoProvider(usuarioIdActual: -1),
+          update: (_, auth, __) => TratamientoProvider(usuarioIdActual: auth.usuarioIdActual),
         ),
-        // MODIFICADO: Quitamos el 'double.infinity' global para evitar romper Rows horizontales
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 24),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
-      ), // Cierre de ThemeData
-      home: Consumer<AuthProvider>(
+      ],
+      child: Consumer<AuthProvider>(
         builder: (context, auth, _) {
-          return auth.estaLogueado ? const HomeScreen() : const LoginScreen();
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            title: 'MindTrack',
+            theme: ThemeData(
+              colorScheme: ColorScheme.fromSeed(seedColor: Colors.teal),
+              useMaterial3: true,
+            ),
+            home: auth.isLoggedIn ? const HomeScreen() : const LoginScreen(),
+          );
         },
-      ), // Cierre del Consumer
-    ); // Cierre del MaterialApp
-  } // Cierre del método Widget build
-} // Cierre de la clase MyApp 👈 Corregido: Removida la 'x' sobrante al final
+      ),
+    );
+  }
+}

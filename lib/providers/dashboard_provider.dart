@@ -11,20 +11,16 @@ class DashboardProvider with ChangeNotifier {
   int totalTratamientos = 0;
   int tratamientosCompletados = 0;
 
-  // 💡 SOLUCIÓN (Imagen 6): Agregamos el getter 'consejo' que tu HomeScreen intenta leer
-  String get consejo => "¡Un paso a la vez! Lo importante es mantener la constancia y no detenerse.";
+  String get consejo => "¡Un paso a la vez! Lo importante es mantener la constancia y cuidar de ti.";
 
   double get progresoRutinas => totalRutinas == 0 ? 0.0 : rutinasCompletadas / totalRutinas;
   double get progresoTratamientos => totalTratamientos == 0 ? 0.0 : tratamientosCompletados / totalTratamientos;
 
-  // 📋 MODIFICADO (Imagen 3): Ahora requiere el usuarioId para cargar las métricas correctas
   Future<void> cargarDashboard(int usuarioId) async {
     try {
-      // Consulta los servicios usando el filtro del usuario logueado
       final rutinas = await _rutinaService.obtenerRutinasPorUsuario(usuarioId);
       final tratamientos = await _tratamientoService.obtenerTratamientosPorUsuario(usuarioId);
 
-      // Calcula las métricas del usuario actual
       totalRutinas = rutinas.length;
       rutinasCompletadas = rutinas.where((r) => r.completado).length;
 
@@ -33,7 +29,7 @@ class DashboardProvider with ChangeNotifier {
 
       notifyListeners();
     } catch (e) {
-      debugPrint("Error al cargar el dashboard: $e");
+      debugPrint("Error cargando Dashboard: \$e");
     }
   }
 }
